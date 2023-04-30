@@ -38,7 +38,7 @@ export default {
           .post(`${apiURL}/services`, this.service)
           .then(() => {
             alert('Service has been added.')
-            this.$router.push({ name: 'findservice' })
+            this.$router.push({ name: 'findservices' })
           })
           .catch((error) => {
             console.log(error)
