@@ -8,8 +8,8 @@ export default {
     return {
       services: [],
       // Parameter for search to occur
-      searchBy: 'Service Name',
-      serviceName: '',
+      searchBy: '',
+      serviceSearchValue: '',
       status: 'Active'
     }
   },
@@ -17,42 +17,43 @@ export default {
     const user = useLoggedInUserStore();
     return { user };
   },
-  mounted() {
+  created() {
     this.getServices()
   },
-  methods: {    
+  methods: {
+    // search event based on service name, description and status
     handleSubmitForm() {
-      // search event based on service name and status
-       let endpoint = ''
-       if (this.searchBy === 'Service Name') {
-         endpoint = `services/search/?name=${this.serviceName}&searchBy=name`
-       }
-       else if (this.searchBy === 'Status'){
-        endpoint = `services/search/?status=${this.status}&searchBy=status`
-       }
-       axios.get(`${apiURL}/${endpoint}`).then((res) => {
-         this.services = res.data
-       })
-     },
-    // abstracted method to get events
+      let endpoint = ''
+      if (this.searchBy) {
+        endpoint = `services/searchservices/?serviceSearchValue=${this.serviceSearchValue}&searchBy=${this.searchBy}`
+      }
+      else{
+        alert("invalid searchBy")
+      }
+      axios.get(`${apiURL}/${endpoint}`).then((res) => {
+        this.services = res.data
+      })
+    },
+    // abstracted method to get top 20 services
     getServices() {
-       axios.get(`${apiURL}/services`).then((res) => {
-         this.services = res.data
-       })
+      axios.get(`${apiURL}/services`).then((res) => {
+        this.services = res.data
+      })
       window.scrollTo(0, 0)
     },
     clearSearch() {
       // Resets all the variables
-      this.searchBy = 'Service Name'
+      this.searchBy = ''
       this.serviceName = ''
       this.status = 'Active'
       this.getServices()
+      
     },
-    // go to edit service page with the service id
     editService(serviceID) {
+    //route to edit service page when clicking on a certain service
       this.$router.push({ name: 'editservice', params: { id: serviceID } })
     },
-    // soft delete service by turning service 'Active' status to 'Inactive'
+    // soft delete service by turning service 'Active' status to 'Inactive' status
     deactivateService(id)
     {
       axios.put(`${apiURL}/services/updatestatus/${id}`)
@@ -61,7 +62,7 @@ export default {
         if (res)
         {
           alert("Service is deactivated")
-          this.$router.back()
+          this.$router.push({ name: 'findservices' })
         }
         
         else{console.log("Fail")}
@@ -70,7 +71,6 @@ export default {
         console.error(err);
       });
           }
-    
   }
 }
 </script>
@@ -81,42 +81,53 @@ export default {
       <h1
         class="font-bold text-4xl text-red-700 tracking-widest text-center mt-10"
       >
-        Search Services
+        List of Services
       </h1>
     </div>
     <div class="px-10 pt-20">
       <div
         class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-10"
       >
-        <h2 class="text-2xl font-bold">Service Name</h2>
+        <h2 class="text-2xl font-bold">Search Service By</h2>
         <!-- Displays Service Name search field -->
         <div class="flex flex-col">
           <select
             class="rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
             v-model="searchBy"
           >
-            <option value="Service Name">Service Name</option>
-            <option value="Status">Service Status</option>
+            <option value="name">Name</option>
+            <option value="description">Description</option>
+            <option value="status">Service Status</option>
           </select>
         </div>
-        
-        <div class="flex flex-col col-sm" v-if="searchBy === 'Service Name'">
+        <div class="flex flex-col" v-if="searchBy === 'name'">
           <label class="block">
             <input
               type="text"
-              class="rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-              v-model="serviceName"
+              class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+              v-model="serviceSearchValue"
               v-on:keyup.enter="handleSubmitForm"
               placeholder="Enter service name"
             />
           </label>
         </div>
-        <div class="flex flex-col col-sm" v-if="searchBy === 'Status'">
+        <!-- Displays Service Description search field -->
+        <div class="flex flex-col" v-if="searchBy === 'description'">
+          <input
+            class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            type="text"
+            v-model="serviceSearchValue"
+            v-on:keyup.enter="handleSubmitForm"
+            placeholder="Enter service description"
+          />
+        </div>
+        <div class="flex flex-col col-sm" v-if="searchBy === 'status'">
           <label class="block">
             <div class="flex flex-col">
           <select
             class="rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-            v-model="status"
+            v-model="serviceSearchValue"
+            v-on:keyup.enter="handleSubmitForm"
           >
             <option value="Active" selected>Active</option>
             <option value="Inactive">Inactive</option>
@@ -126,25 +137,29 @@ export default {
         </div>
         <div></div>
         <div></div>
-        <div class="flex flex-col">
-            <button class=" mr-10 bg-red-700 text-white rounded" @click="handleSubmitForm" type="submit">
-              Search Service
+      </div>
+        <div
+          class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-10"
+        >
+          <div></div>
+          <div></div>
+          <div class="mt-5 grid-cols-2">
+            <button
+              class="mr-10 border border-red-700 bg-white text-red-700 rounded"
+              @click="clearSearch"
+              type="submit"
+            >
+              Clear Search
             </button>
             <button
-            class="mr-10 border border-red-700 bg-white text-red-700 rounded"
-            @click="clearSearch"
-            type="submit"
-          >
-            Clear Search
-          </button>
+              class="bg-red-700 text-white rounded"
+              @click="handleSubmitForm"
+              type="submit"
+            >
+              Search Service
+            </button>
           </div>
-      </div>
-      <div></div>
-      <div></div>
-      <div
-        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-10"
-      >
-      </div>
+        </div>
     </div>
 
     <hr class="mt-10 mb-10" />
@@ -153,8 +168,8 @@ export default {
       class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-10"
     >
       <div class="ml-10">
-        <h2 class="text-2xl font-bold">Search Result</h2>
-       <!-- <h3 class="italic">Click table row to edit/display an entry</h3>-->
+        <h2 class="text-2xl font-bold">List of Services</h2>
+        <h3 class="italic">Click table row to edit/display an entry</h3>
       </div>
       <div class="flex flex-col col-span-2">
         <table class="min-w-full shadow-md rounded">
@@ -173,7 +188,7 @@ export default {
               :key="service._id"
             >
               <td class="p-2 text-left">{{ service.name }}</td>
-              <td class="p-2 text-left">{{ service.status }}</td>
+              <td class="p-2 text-left"><p :style="{ color: service.status === 'Inactive' ? 'red' : 'green', fontWeight: service.status === 'Inactive' ? 'bold' : 'normal' }">{{ service.status}}</p></td>
               <td class="p-2 text-left">{{ service.description }}</td>
               <td class="p-2 text-left">
                 <button v-if="user && user.role === '1' && service.status === 'Active'" class="bg-red-700 text-white rounded" @click="deactivateService(service._id)">Deactivate</button>

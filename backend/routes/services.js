@@ -6,7 +6,7 @@ const org = process.env.ORG
 // importing data model schemas
 const { services } = require('../models/models')
 
-// GET 10 most recent services for org
+// GET 20 most recent services for org
 router.get('/', (req, res, next) => {
   services
     .find({ org: org }, (error, data) => {
@@ -18,9 +18,9 @@ router.get('/', (req, res, next) => {
     })
     // sort by date ascending
     .sort({ name: 1 })
-    .limit(10)
+    .limit(20)
 })
-// GET all active services for org
+// GET all active services for org, these active services will be displayed in Create Event form or Edit Event
 router.get('/active', (req, res, next) => {
   services
     .find({ $and: [{org: org }, {status: 'Active'}] } , (error, data) => {
@@ -49,17 +49,23 @@ router.get('/id/:id', (req, res, next) => {
 })
 
 // GET services based on search query
-// Ex: '...?name=Food&searchBy=name'
-router.get('/search/', (req, res, next) => {
+// Ex: '...?name=servicename&searchBy=name'
+router.get('/searchservices/', (req, res, next) => {
+
+  console.log(req.query.searchBy)
   const dbQuery = { org: org }
   switch (req.query.searchBy) {
     case 'name':
       // match service name, no anchor
-      dbQuery.name = { $regex: `${req.query.name}`, $options: 'i' }
+      dbQuery.name = { $regex: `${req.query.serviceSearchValue}`, $options: 'i' }
       break
-      // match service status (either Active or Inactive)
+      // match service description, no anchor
+    case 'description':
+      dbQuery.description = { $regex: `${req.query.serviceSearchValue}`, $options: 'i' }
+      break
+      // match service status
     case 'status':
-      dbQuery.status = { $eq: req.query.status }
+      dbQuery.status = { $eq: req.query.serviceSearchValue }
       break
     default:
       return res.status(400).send('invalid searchBy')
@@ -74,10 +80,11 @@ router.get('/search/', (req, res, next) => {
 })
 
 
-// POST new service
+// POST add new service
 router.post('/', (req, res, next) => {
   const newServices = req.body
-  newServices.orgs = org
+  newServices.org = org
+  console.log(newServices)
   services.create(newServices, (error, data) => {
     if (error) {
       return next(error)
@@ -87,7 +94,7 @@ router.post('/', (req, res, next) => {
   })
 })
  
-// PUT update service
+// PUT update service data
 router.put('/update/:id', (req, res, next) => {
     services.findByIdAndUpdate(req.params.id, req.body, (error, data) => {
     if (error) {
