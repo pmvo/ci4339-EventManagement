@@ -83,7 +83,7 @@ router.get('/searchservices/', (req, res, next) => {
 // POST add new service
 router.post('/', (req, res, next) => {
   const newServices = req.body
-  newServices.org = org
+  newServices.orgs = org
   console.log(newServices)
   services.create(newServices, (error, data) => {
     if (error) {
